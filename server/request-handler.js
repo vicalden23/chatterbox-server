@@ -11,39 +11,59 @@ this file and include it in basic-server.js so that it actually works.
 *Hint* Check out the node module documentation at http://nodejs.org/api/modules.html.
 
 **************************************************************/
+var qs = require('querystring');
+var objectId = 0;
+
+var messages = [{username: 'anton', text: 'hello, humans!', objectId: objectId}];
 
 var requestHandler = function(request, response) {
   // Request and Response come from node's http module.
   //
-  // They include information about both the incoming request, such as
-  // headers and URL, and about the outgoing response, such as its status
-  // and content.
-  //
-  // Documentation for both request and response can be found in the HTTP section at
-  // http://nodejs.org/documentation/api/
+  var defaultCorsHeaders = {
+    'access-control-allow-origin': '*',
+    'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'access-control-allow-headers': 'content-type, accept',
+    'access-control-max-age': 10 // Seconds.
+  };
 
-  // Do some basic logging.
-  //
-  // Adding more logging to your server can be an easy way to get passive
-  // debugging help, but you should always be careful about leaving stray
-  // console.logs in your code.
   console.log('Serving request type ' + request.method + ' for url ' + request.url);
 
-  // The outgoing status.
+
   var statusCode = 200;
-
-  // See the note below about CORS headers.
   var headers = defaultCorsHeaders;
+  headers['Content-Type'] = 'application/json';
 
-  // Tell the client we are sending them plain text.
-  //
-  // You will need to change this if you are sending something
-  // other than plain text, like JSON or HTML.
-  headers['Content-Type'] = 'text/plain';
 
-  // .writeHead() writes to the request line and headers of the response,
-  // which includes the status and all headers.
-  response.writeHead(statusCode, headers);
+  if (request.method === 'POST' && request.url === '/classes/messages') {
+    var body = '';
+
+    request.on('data', function(chunk) {
+      chunk = JSON.parse(chunk);
+      console.log("CHUNK =========>", chunk, typeof chunk);
+      messages.results.push(chunk);
+      console.log(messages);
+    });
+
+    request.on('end', function() {
+      response.writeHead(201, headers);
+      response.end(JSON.stringify(messages), {objectId: 1});
+    });
+  }
+
+  if (request.method === 'GET' && request.url === '/classes/messages') {
+    response.writeHead(200, headers);
+    response.end(JSON.stringify(messages));
+  }
+
+  if (request.method === 'OPTIONS' && request.url === '/classes/messages') {
+    response.writeHead(200, headers);
+    response.end();
+  }
+
+  if (request.url !== '/classes/messages') {
+    response.writeHead(404);
+    response.end();
+  }
 
   // Make sure to always call response.end() - Node may not send
   // anything back to the client until you do. The string you pass to
@@ -52,7 +72,8 @@ var requestHandler = function(request, response) {
   //
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
-  response.end('Hello, World!');
+
+  //response.end();
 };
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
@@ -64,10 +85,26 @@ var requestHandler = function(request, response) {
 //
 // Another way to get around this restriction is to serve you chat
 // client from this domain by setting up static file serving.
-var defaultCorsHeaders = {
-  'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'access-control-allow-headers': 'content-type, accept',
-  'access-control-max-age': 10 // Seconds.
-};
+
+module.exports = requestHandler;
+
+
+  // server
+  //   1) should respond to GET requests for /classes/messages with a 200 status code
+  //   2) should send back parsable stringified JSON
+  //   3) should send back an object
+  //   4) should send an object containing a `results` array
+  //   5) should accept POST requests to /classes/messages
+  //   6) should respond with messages that were previously posted
+  //   7) Should 404 when asked for a nonexistent endpoint
+
+  // Node Server Request Listener Function
+  //   8) Should answer GET requests for /classes/messages with a 200 status code
+  //   9) Should send back parsable stringified JSON
+  //   10) Should send back an object
+  //   11) Should send an object containing a `results` array
+  //   12) Should accept posts to /classes/room
+  //   13) Should respond with messages that were previously posted
+  //   14) Should 404 when asked for a nonexistent file
+
 
